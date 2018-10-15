@@ -209,14 +209,15 @@ class PerformanceCategoryRenderer extends CategoryRenderer {
     }
 
     // Passed audits
-    const passedElements = category.auditRefs
+    const passedAudits = category.auditRefs
         .filter(audit => (audit.group === 'load-opportunities' || audit.group === 'diagnostics') &&
-            Util.showAsPassed(audit.result))
-        .map((audit, i) => this.renderAudit(audit, i));
+            Util.showAsPassed(audit.result));
+    const passedElements = passedAudits.map((audit, i) => this.renderAudit(audit, i));
 
     if (!passedElements.length) return element;
 
-    const passedElem = this.renderPassedAuditsSection(passedElements);
+    const expandPassedAudits = this._auditsHaveWarnings(passedAudits);
+    const passedElem = this.renderPassedAuditsSection(passedElements, expandPassedAudits);
     element.appendChild(passedElem);
     return element;
   }

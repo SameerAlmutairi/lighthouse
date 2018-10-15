@@ -112,6 +112,38 @@ describe('CategoryRenderer', () => {
     assert.ok(warningEl.textContent.includes(auditResult.warnings[1]), '2nd warning provided');
   });
 
+  it('expands passed audit group when warnings exist', () => {
+    const category = sampleResults.reportCategories.find(c => c.id === 'pwa');
+    const prevAuditRefs = category.auditRefs;
+    const auditWithWarning = prevAuditRefs[0];
+    auditWithWarning.result = Object.assign({}, category.auditRefs[0].result,
+      {warnings: ['Some warning']});
+    category.auditRefs = [auditWithWarning];
+
+    const auditDOM = renderer.render(category);
+    const passedAuditGroupEl = auditDOM.querySelector('details.lh-passed-audits');
+    const isExpanded = passedAuditGroupEl.hasAttribute('open');
+    assert.ok(isExpanded, 'Passed audit group with warning should be expanded by default');
+
+    category.auditRefs = prevAuditRefs;
+  });
+
+  it('does not expand passed audit group when no warnings exist', () => {
+    const category = sampleResults.reportCategories.find(c => c.id === 'pwa');
+    const prevAuditRefs = category.auditRefs;
+    const auditWithNoWarning = prevAuditRefs[0];
+    auditWithNoWarning.result = Object.assign({}, category.auditRefs[0].result,
+      {warnings: []});
+    category.auditRefs = [auditWithNoWarning];
+
+    const auditDOM = renderer.render(category);
+    const passedAuditGroupEl = auditDOM.querySelector('details.lh-passed-audits');
+    const isExpanded = passedAuditGroupEl.hasAttribute('open');
+    assert.ok(!isExpanded, 'Passed audit group with no warning should not be expanded by default');
+
+    category.auditRefs = prevAuditRefs;
+  });
+
   it('renders a category', () => {
     const category = sampleResults.reportCategories.find(c => c.id === 'pwa');
     const categoryDOM = renderer.render(category, sampleResults.categoryGroups);

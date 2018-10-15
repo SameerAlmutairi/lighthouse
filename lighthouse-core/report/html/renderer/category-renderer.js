@@ -22,6 +22,7 @@
 /** @typedef {import('./report-renderer.js')} ReportRenderer */
 /** @typedef {import('./details-renderer.js')} DetailsRenderer */
 /** @typedef {import('./util.js')} Util */
+/** @typedef {{passed: Array<LH.ReportResult.AuditRef>, failed: Array<LH.ReportResult.AuditRef>, notApplicable: Array<LH.ReportResult.AuditRef>}} AuditsByState */
 
 class CategoryRenderer {
   /**
@@ -220,13 +221,15 @@ class CategoryRenderer {
 
   /**
    * @param {Array<Element>} elements
+   * @param {boolean} expandByDefault
    * @return {Element}
    */
-  renderPassedAuditsSection(elements) {
+  renderPassedAuditsSection(elements, expandByDefault) {
     const passedElem = this.renderAuditGroup({
       title: Util.UIStrings.passedAuditsGroupTitle,
     }, {expandable: true, itemCount: this._getTotalAuditsLength(elements)});
     passedElem.classList.add('lh-passed-audits');
+    if (expandByDefault) passedElem.setAttribute('open', '');
     elements.forEach(elem => passedElem.appendChild(elem));
     return passedElem;
   }
@@ -258,6 +261,14 @@ class CategoryRenderer {
       auditGroupElem.appendChild(this.renderAudit(audit, i));
     });
     return auditGroupElem;
+  }
+
+  /**
+   * @param {Array<LH.ReportResult.AuditRef>} audits
+   * @return {boolean}
+   */
+  _auditsHaveWarnings(audits) {
+    return audits.some(group => Boolean(group.result.warnings && group.result.warnings.length));
   }
 
   /**
@@ -316,8 +327,10 @@ class CategoryRenderer {
     const manualAudits = auditRefs.filter(audit => audit.result.scoreDisplayMode === 'manual');
     const nonManualAudits = auditRefs.filter(audit => !manualAudits.includes(audit));
 
-    /** @type {Object<string, {passed: Array<LH.ReportResult.AuditRef>, failed: Array<LH.ReportResult.AuditRef>, notApplicable: Array<LH.ReportResult.AuditRef>}>} */
+    /** @type {Object<string, AuditsByState>} */
     const auditsGroupedByGroup = {};
+
+    /** @type {AuditsByState} */
     const auditsUngrouped = {passed: [], failed: [], notApplicable: []};
 
     nonManualAudits.forEach(auditRef => {
@@ -344,6 +357,8 @@ class CategoryRenderer {
         group.failed.push(auditRef);
       }
     });
+
+    let expandPassedAudits = this._auditsHaveWarnings(auditsUngrouped.passed);
 
     const failedElements = /** @type {Array<Element>} */ ([]);
     const passedElements = /** @type {Array<Element>} */ ([]);
@@ -372,6 +387,7 @@ class CategoryRenderer {
         groups.passed.forEach((item, i) => auditGroupElem.appendChild(this.renderAudit(item, i)));
         auditGroupElem.classList.add('lh-audit-group--unadorned');
         passedElements.push(auditGroupElem);
+        if (!expandPassedAudits) expandPassedAudits = this._auditsHaveWarnings(groups.passed);
       }
 
       if (groups.notApplicable.length) {
@@ -394,7 +410,7 @@ class CategoryRenderer {
     }
 
     if (passedElements.length) {
-      const passedElem = this.renderPassedAuditsSection(passedElements);
+      const passedElem = this.renderPassedAuditsSection(passedElements, expandPassedAudits);
       element.appendChild(passedElem);
     }
 
